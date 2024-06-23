@@ -626,7 +626,7 @@ class SObject:
 
     def top_down_search(
         self,
-        accept: Callable[["SObject"], bool] | None = None,
+        accept: Callable[[T4], bool] | None = None,
         stop: Callable[["SObject"], bool] | None = None,
         type: type[T4] = Self,
     ) -> list[T4]:
