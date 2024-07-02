@@ -43,9 +43,8 @@ class SObjectSerialized:
     children: Dict[str, SObjectSerialized]
     user_attribute_references: Dict[str, str]
     user_sobject_references: Dict[str, str]
-    wrapped_topics: List[str] = field(
-        default_factory=list
-    )  # DEPRECATED: the default value is for old format
+    wrapped_topics: List[str]
+    state_dict: Dict = field(default_factory=dict)
 
     def __init__(
         self,
@@ -56,6 +55,7 @@ class SObjectSerialized:
         user_attribute_references: Dict[str, str],
         user_sobject_references: Dict[str, str],
         wrapped_topics: List[str] = None,
+        state_dict: Dict = {},
     ):
         self.id = id
         self.type = type
@@ -65,6 +65,7 @@ class SObjectSerialized:
         self.user_attribute_references = user_attribute_references
         self.user_sobject_references = user_sobject_references
         self.wrapped_topics = wrapped_topics if wrapped_topics is not None else []
+        self.state_dict = state_dict
 
     def _to_info_format(self, attributes: List) -> List:
         if len(attributes) == 3:
@@ -85,6 +86,9 @@ class SObjectSerialized:
             return attributes
 
     def to_dict(self):
+        """
+        state_dict is not included because it may be not json serializable
+        """
         return {
             "id": self.id,
             "type": self.type,
@@ -274,6 +278,8 @@ class SObject:
         # remember these in case we need to serialize this object again
         self._user_attribute_references = serialized.user_attribute_references
         self._user_sobject_references = serialized.user_sobject_references
+
+        self.set_state_dict(serialized.state_dict)
 
     def init(self):
         """
@@ -536,6 +542,8 @@ class SObject:
             if isinstance(attribute, WrappedTopic):
                 wrapped_topics.append(attribute.get_name().split("/")[-1])
 
+        state_dict = self.get_state_dict()
+
         return SObjectSerialized(
             id=self._id,
             type=self._server.get_object_type_name(self.__class__),
@@ -544,10 +552,23 @@ class SObject:
             user_attribute_references=self._user_attribute_references,
             user_sobject_references=self._user_sobject_references,
             wrapped_topics=wrapped_topics,
+            state_dict=state_dict,
         )
 
     def is_destroyed(self):
         return self._destroyed
+
+    def get_state_dict(self):
+        """
+        Return a dictionary that represents the in-memory state of the object.
+        """
+        return {}
+
+    def set_state_dict(self, state_dict):
+        """
+        Restore the in-memory state of the object from a dictionary.
+        """
+        pass
 
     def serialize(self) -> SObjectSerialized:
         attributes_serialized = []
@@ -575,6 +596,8 @@ class SObject:
             if isinstance(attribute, WrappedTopic):
                 wrapped_topics.append(attribute.get_name().split("/")[-1])
 
+        state_dict = self.get_state_dict()
+
         return SObjectSerialized(
             id=self._id,
             type=self._server.get_object_type_name(self.__class__),
@@ -583,6 +606,7 @@ class SObject:
             user_attribute_references=self._user_attribute_references,
             user_sobject_references=self._user_sobject_references,
             wrapped_topics=wrapped_topics,
+            state_dict=state_dict,
         )
 
     def add_tag(self, tag):
